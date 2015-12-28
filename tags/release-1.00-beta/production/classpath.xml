@@ -1,0 +1,8 @@
+<project>
+
+    <!-- Classpath for the production part of the code -->
+
+    <path id="production.classpath">
+    </path>
+
+</project>

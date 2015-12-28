@@ -1,0 +1,59 @@
+<project name="fadwsclient" default="dist" basedir=".">
+    <import file="production/classpath.xml"/>
+    <import file="test/classpath.xml"/>
+    <import file="test/cases.xml"/>
+
+    <property name="java-version" value="1.5"/>
+
+    <target name="init">
+        <tstamp/>
+        <mkdir dir="production/classes"/>
+        <mkdir dir="test/classes"/>
+    </target>
+
+    <path id="test.full-classpath">
+        <pathelement location="production/classes"/>
+        <pathelement location="test/classes"/>
+        <path refid="production.classpath"/>
+        <path refid="test.classpath"/>
+    </path>
+
+    <target name="compile" depends="init">
+        <javac srcdir="production/src" destdir="production/classes" nowarn="on" debug="on" source="${java-version}">
+            <classpath refid="production.classpath"/>
+        </javac>
+        <javac srcdir="test/src" destdir="test/classes" nowarn="on" debug="on" source="${java-version}">
+            <classpath>
+                <pathelement location="production/classes"/>
+                <path refid="production.classpath"/>
+                <path refid="test.classpath"/>
+            </classpath>
+        </javac>
+    </target>
+
+    <target name="dist" depends="compile">
+        <jar jarfile="${ant.project.name}.jar">
+            <fileset dir="production/classes"/>
+            <fileset dir="production/res"/>
+        </jar>
+    </target>
+
+    <target name="test" depends="dist"/>
+
+    <target name="doc">
+        <delete dir="production/doc"/>
+        <mkdir dir="production/doc"/>
+        <javadoc packagenames="*.*" sourcepath="production/src" defaultexcludes="yes" destdir="production/doc"
+                 author="true" version="true" use="true"
+                 windowtitle="${ant.project.name}">
+            <doctitle><![CDATA[<h1>${project}</h1>]]></doctitle>
+        </javadoc>
+    </target>
+
+    <target name="clean">
+        <delete dir="production/classes"/>
+        <delete dir="test/classes"/>
+        <delete dir="production/doc"/>
+        <delete file="${ant.project.name}.jar"/>
+    </target>
+</project>

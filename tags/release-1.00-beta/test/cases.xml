@@ -1,0 +1,29 @@
+<project>
+
+    <!-- Targets that run individual test cases -->
+
+    <target name="test-json-parser" depends="test">
+        <java classname="test.JsonParserTest" fork="true" classpathref="test.full-classpath"/>
+    </target>
+
+    <target name="test-xml-parser" depends="test">
+        <java classname="test.XmlParserTest" fork="true" classpathref="test.full-classpath"/>
+    </target>
+
+    <target name="test-danmark-service" depends="test">
+        <java classname="test.examples.danmarkservice.DanmarkServiceTest" fork="true" classpathref="test.full-classpath"/>
+    </target>
+
+    <target name="test-google-books" depends="test">
+        <java classname="test.examples.google.GoogleBooksTest" fork="true" classpathref="test.full-classpath"/>
+    </target>
+
+    <target name="test-google-translate" depends="test">
+        <java classname="test.examples.google.GoogleTranslateTest" fork="true" classpathref="test.full-classpath"/>
+    </target>
+
+    <target name="test-webschools-temperature-converter" depends="test">
+        <java classname="test.examples.webschools.WebSchoolsTemperatureConverterTest" fork="true" classpathref="test.full-classpath"/>
+    </target>
+
+</project>

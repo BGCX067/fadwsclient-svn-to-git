@@ -1,0 +1,8 @@
+<project>
+
+    <!-- Additional classpath for testing code -->
+
+    <path id="test.classpath">
+    </path>
+    
+</project>

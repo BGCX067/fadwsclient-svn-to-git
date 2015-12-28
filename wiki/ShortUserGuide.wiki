@@ -1,0 +1,271 @@
+#summary Short user guide for fadclient.
+#labels Featured
+
+= Short User Guide =
+
+== How it works ==
+
+You (the programmer) writes an interface that contains the method signatures of the parts of a particular web service you wish to use.
+
+You add a few annotations that describes the communication protocol and fadwsclient will give you a proxy implementation of the interface that allows you to access the service.
+
+== Why use it? ==
+
+In general it makes sense to use fadwsclient when you do not have a machine-readble interface specification (i.e. a SOAP WSDL) or you only wish to use a small subset of a much larger service.
+
+Compared to other web service frameworks fadwsclient stands out in the following ways:
+
+  * Small footprint - no dependencies.
+  * Easy to use - no static code generation.
+  * Java 5 syntax - "declarative" programming style.
+
+You will probably see that the "declarative" programming style tops out when the protocol gets suffienctly complex.
+
+So use your good judgement and look thru the examples.
+
+== How to build it - required dependencies ==
+
+The project builds with Apache Ant 1.7.0 - use the following command:
+
+{{{
+ant clean dist
+}}}
+
+From the root of the checkout - the resulting fadwsclient.jar is the distributable.
+
+There are no dependencies other than Java 5+.
+
+== A simple example: Google Translate ==
+
+This example creates a client object for Google's translation service:
+
+{{{
+// Service definition:
+
+public interface GoogleTranslate {
+    @FadService(
+            requestUrl = "http://ajax.googleapis.com/ajax/services/language/translate?v=1.0&langpair={0}&q={1}",
+            responseEncoding = FadService.ResponseEncoding.JSON,
+            responseSubhierarchy = "responseData.translatedText"
+    )
+    public String translate(String languagePair, String text);
+}
+
+// Usage:
+
+GoogleTranslate googleTranslate = FadClient.create(GoogleTranslate.class);
+
+System.out.println("What does 'rød grød med fløde' mean?");
+System.out.println("It means '"+googleTranslate.translate("da|en", "rød grød med fløde")+"'");
+}}}
+
+The above example is available at:
+
+{{{
+http://fadwsclient.googlecode.com/svn/trunk/test/src/test/examples/google/GoogleTranslate.java
+http://fadwsclient.googlecode.com/svn/trunk/test/src/test/examples/google/GoogleTranslateTest.java
+}}}
+
+And may be run via ant / command-line by:
+
+{{{
+ant test-google-translate
+}}}
+
+== More examples ==
+
+See:
+
+{{{
+http://fadwsclient.googlecode.com/svn/trunk/test/src/test/examples/
+}}}
+
+The following examples may be run from command-line:
+
+{{{
+ant test-danmark-service
+ant test-google-books
+ant test-google-translate
+ant test-webschools-temperature-converter
+}}}
+
+== How requests are made ==
+
+You provide the data for request via three annotation attributes: requestUrl, requestData and requestMethod.
+
+Request URL is the URL fadwsclient will request, request data is the data that it will send and request method is http method that it will use (GET, POST, DELETE etc.).
+
+For the first two fadwsclient will substitute the method parameter values into the strings using placeholders named {0} {1} {2} etc.
+
+Where {0} is the value of the first parameter, {1} is the second, {2} is the third ...
+
+For example if you have an annotation like this:
+
+{{{
+@FadService(
+        requestUrl = "http://oiorest.dk/danmark/adresser/{0},{1},{2}.json",
+...
+)
+public Coordinates findCoordinates(String streetName, String houseNumber, String zipCode);
+}}}
+
+And you call the interface implementation like this:
+
+{{{
+... findCoordinates("Bentzonsvej", "11", "2000");
+}}}
+ 
+fadwsclient will request the following URL:
+
+{{{
+http://oiorest.dk/danmark/adresser/Bentzonsvej,11,2000.json",
+}}}
+
+Since you did not provide any request data or any request method - you will not send any additional data and you will do a HTTP GET.
+
+== How responses are interpretated ==
+
+When fadwsclient makes a request it will send the response thru a parser depending on the value of the responseEncoding attribute - there currently 3 encodings and corresponding parsers defined:
+
+  * NONE: No parser is done. (The data is treated as a text string. )
+  * XML: The data is a XML document and will be parsed into a structure of maps, lists and strings.
+  * JSON: The data is a JSON document and will be parsed into a structure of maps, lists and strings.
+
+For example - this JSON document:
+
+{{{
+{"responseData": {"translatedText":"red porridge with cream"}, "responseDetails": null, "responseStatus": 200}
+}}}
+
+Is parsed into this object structure:
+
+{{{
+map {
+  responseData -> map { translatedText -> "red porridge with cream" }
+  responseDetails -> null
+  responseStatus > 200
+}
+}}}
+
+== How to use subhierarchy expressions ==
+
+The parser will parse the response into a hierarchy of lists and maps.
+
+Often you are only interested in particular parts of the response - i.e. Google Translate returns something like this:
+
+{{{
+{"responseData": {"translatedText":"red porridge with cream"}, "responseDetails": null, "responseStatus": 200}
+}}}
+
+Where the translation is the only bit of interest.
+
+A subhierarchy expression simply allows you to pick this subdata of out of the full response.
+
+This expression picks the translation out of the above:
+
+{{{
+responseData.translatedText
+}}}
+
+You may put several expressions together:
+
+{{{
+responseData.translatedText,responseStatus
+}}}
+
+If you required both bits of information.
+
+In this case the return type of the annotated method would have to have a constructor taking two parameters.
+
+If you have a structure like this:
+
+{{{
+<authors>
+  <author>
+     <name>Lars</name>
+     <dob>...</dob>
+  </author>
+  <author>
+     <name>Peter</name>
+     <dob>...</dob>
+  </author>
+  ...
+</authors>
+}}}
+
+You can pick out the list of author names like this:
+
+{{{
+authors$.author.name
+}}}
+
+Where the $ sign tells that the key contains a list rather than a single element.
+
+== How objects are mapped to return types ==
+
+fadwsclient will look at the return type of the annotated method to figure out what to return.
+
+If the return type is a string, integer, float or double - fadwsclient will do a standard string conversion.
+
+If it is another type then it will look for a constructor matching the parsed object / subhierarchies.
+
+For example - this:
+
+{{{
+@FadService(
+        requestUrl = "http://oiorest.dk/danmark/adresser/{0},{1},{2}.json",
+        responseEncoding = FadService.ResponseEncoding.JSON,
+        responseSubhierarchy = "etrs89koor.east,etrs89koor.north"
+)
+public Coordinates findCoordinates(String streetName, String houseNumber, String zipCode);
+}}}
+
+Will make fadwsclient look for a two parameter constructor matching what is a etrs89koor.east and etrs89koor.north - that is two strings:
+
+{{{
+public class Coordinates {
+    public Coordinates(String east, String north) {
+        ...
+    }
+    ...
+}
+}}}
+
+== Configuration mechanisms ==
+
+In a finished program it is often useful to have URLs of external systems in a configuration file.
+
+The external systems may change location over time and may exist in several editions (i.e. production and test) and it is nice to support this without having to recompile.
+
+fadwsclient supports two forms of configuration - configuration via system properties and configuration via JNDI.
+
+If you have an annotation like this:
+
+{{{
+@FadService(
+        requestUrl = "http://oiorest.dk/danmark/adresser/{0},{1},{2}.json",
+...
+)
+}}}
+
+You may move the URL to a system property by changing the above to this:
+
+{{{
+@FadService(
+        requestUrlFromSystemProperty = "oiorest.address.url",
+...
+)
+}}}
+
+And fadwsclient will read the url from the system property "oiorest.address.url".
+
+Similary you can make fadwsclient look for a JNDI configuration (here "java:comp/env/oiorestAddressUrl"):
+
+{{{
+@FadService(
+        requestUrlFromJndi = "java:comp/env/oiorestAddressUrl",
+...
+)
+}}}
+
+If you still define a requestUrl it will act as a default value.
